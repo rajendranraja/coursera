@@ -4,6 +4,12 @@
 _cache/
 .coverage
 /cover/
+/htmlcov/
+/build/
+/dist/
+*.egg-info
+.tox
+
 # virtualenv folders
 venv2
 venv3

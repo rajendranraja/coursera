@@ -9,6 +9,11 @@ import os
 
 from fabric.api import (env, local, task)
 
+MD2RST='pandoc --from=markdown_github --to=rst --output=README.rst README.md'
+
+if not os.path.exists('README.rst'):
+    local(MD2RST)
+
 env.projname = local("python setup.py --name", capture=True)
 env.version = local("python setup.py --version", capture=True)
 
@@ -24,15 +29,24 @@ def mkdirs(path):
 
 
 @task
+def create_rst_doc():
+    local(MD2RST)
+
+
+@task
 def clean():
+    create_rst_doc()
     local("python setup.py clean")
-    local("rm coursera_dl.egg-info htmlcov build -rf")
+    local("rm -rf .tox coursera.egg-info htmlcov build dist README.rst")
+    local("rm -rf coursera/__pycache__/ coursera/test/__pycache__/")
     local("find . -name '*.pyc' -delete")
 
 
 @task
 def build():
+    create_rst_doc()
     local("python setup.py sdist")
+    local("gpg --detach-sign -a dist/coursera-%s.tar.gz" % env.version)
 
 
 @task
@@ -73,5 +87,7 @@ def release():
     build()
     print("Releasing %s version %s." % (env.projname, env.version))
     local("git tag %s" % env.version)
-    local("python setup.py sdist upload")
+    local('gpg --detach-sign --armor dist/coursera-*.tar.gz*')
+    local('twine upload dist/coursera-*.tar.gz*')
+    local("git push")
     local("git push --tags")
